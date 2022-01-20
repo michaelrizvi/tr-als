@@ -10,18 +10,15 @@ class ALS:
         self.early_stopping = early_stopping
         self.cores = []
 
-    def solve(self):
+    def solve(self, verbose=True):
         self.init_cores()
         self.errors = []
 
         for epoch in range(1, self.n_epochs):
             for k, d in enumerate(self.T.shape):
-                print(f'k={k}')
-                print(f'epoch={epoch}')
-                
+
                 # Compute the subchain
                 Q = self.compute_subchain(k)
-                print(f'subchain dims: {Q.shape}')
 
                 # Matricization of subchain tensor
                 Q_mat = np.reshape(Q, (reduce(lambda x, y: x*y, Q.shape[1:len(Q.shape)-1]), Q.shape[0]*Q.shape[-1]))
@@ -30,8 +27,6 @@ class ALS:
                 T_k = list(self.T.shape)
                 T_k.pop(k)
                 T_mat = np.reshape(self.T, (reduce(lambda x, y: x*y, T_k), self.T.shape[k]))
-                print(f'Q dims: {Q_mat.shape}')
-                print(f'T dims: {T_mat.shape}')
 
                 # Solve with least squares solver
                 A = np.linalg.lstsq(Q_mat, T_mat)[0]
@@ -41,9 +36,15 @@ class ALS:
                 # Calculate relative error
                 R = self.recover()
                 error = np.linalg.norm(self.T - R)/np.linalg.norm(self.T)
-                print(f'error: {error}')
                 self.errors.append(error)
 
+                if verbose:
+                    print(f'k={k}')
+                    print(f'epoch={epoch}')
+                    print(f'subchain dims: {Q.shape}')
+                    print(f'Q dims: {Q_mat.shape}')
+                    print(f'T dims: {T_mat.shape}')
+                    print(f'error: {error}')
 
     def init_cores(self):
         if not self.cores:
