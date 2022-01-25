@@ -1,8 +1,8 @@
 import numpy as np
 from ALS import ALS
-ranks = [2,3,4,5]
-T = np.arange(72)
-T = np.reshape(T, (4,3,2,3))
+dims = [4,5,6,4]
+T = np.random.randn(*dims)
+ranks = [11,11,11,11]
 als = ALS(T, ranks)
 
 als.init_cores()
@@ -14,4 +14,9 @@ print(T.shape)
 
 R = als.recover()
 print(R.shape)
+
+print(als.unfold(T, 0).shape)
+print(np.reshape(als.T, [als.T.shape[0], -1]).shape)
+
 als.solve()
+als.plot_losses()
