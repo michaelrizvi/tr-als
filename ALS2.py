@@ -18,20 +18,28 @@ class ALS:
         for epoch in range(1, self.n_epochs):
 
             for k, d in enumerate(self.T.shape):
-
+                # k = 1
                 # Compute the subchain and reshape de subchain
-                Q = self.compute_subchain(k)    # R1 x d2 x d3 x R2
-                Q = np.moveaxis(Q, 0, -1)  # d2 x d3 x R2 x R1
-                Q_mat = np.reshape(Q, (np.prod(Q.shape[:-2]), Q.shape[-2]*Q.shape[-1])) # d2d3 x R2R1
+                Q = self.compute_subchain(k)    # R2 x d3 x d4 x d1 x R1
+                Q = np.moveaxis(Q, 0, -1)  # d3 x d4 x d1 x R1 x R2
+                Q_mat = np.reshape(Q, (np.prod(Q.shape[:-2]), Q.shape[-2]*Q.shape[-1])) 
+                # d3d4d1 x R1R2
 
                 # Matricization of target tensor
-                T_mat = self.unfold(self.T, k).T  # d2d3 x d1
+                T_perm = self.T
+                for i in range(k):
+                   T_perm = np.moveaxis(T_perm,0,-1)  # d2 x d3 x d4 x d1
+
+                T_mat = self.unfold(T_perm, 0).T  #  d3d4d1 x d2
 
                 # Solve with least squares solver
-                A_mat = np.linalg.lstsq(Q_mat, T_mat, rcond=None)[0]    #R2R1 x d1
+                A_mat = np.linalg.lstsq(Q_mat, T_mat, rcond=None)[0]    #R1R2 x d2
                 shape = self.cores[k].shape
-                A = np.reshape(A_mat, (shape[2], shape[0], shape[1]))
-                A = np.moveaxis(A, 1, -1)
+                A = np.reshape(A_mat, (shape[0], shape[2], shape[1]))  # R1 x R2 x d2
+                A = np.moveaxis(A, 1, -1)  # R1 x d2 x R2 
+                print("**", shape)
+                print("**", A.shape)
+                print("**", A.shape)
                 self.cores[k] = A
                 #A = np.transpose(A,[0,2,1])
                 # Calculate relative error
