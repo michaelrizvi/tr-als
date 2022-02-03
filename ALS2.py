@@ -16,25 +16,28 @@ class ALS:
         self.errors = []
 
         for epoch in range(1, self.n_epochs):
-            # Calculate relative error
-            R = self.recover()
-            error = np.linalg.norm(self.T - R)/np.linalg.norm(self.T)
-            self.errors.append(error)
 
             for k, d in enumerate(self.T.shape):
 
                 # Compute the subchain and reshape de subchain
-                Q = self.compute_subchain(k)
-                Q = np.moveaxis(Q, 0, -1)
-                Q_mat = np.reshape(Q, (np.prod(Q.shape[:len(Q.shape)-2]), Q.shape[-2]*Q.shape[-1]))
+                Q = self.compute_subchain(k)    # R1 x d2 x d3 x R2
+                Q = np.moveaxis(Q, 0, -1)  # d2 x d3 x R2 x R1
+                Q_mat = np.reshape(Q, (np.prod(Q.shape[:-2]), Q.shape[-2]*Q.shape[-1])) # d2d3 x R2R1
 
                 # Matricization of target tensor
-                T_mat = self.unfold(self.T, k).T
+                T_mat = self.unfold(self.T, k).T  # d2d3 x d1
 
                 # Solve with least squares solver
-                A_mat = np.linalg.lstsq(Q_mat, T_mat, rcond=None)[0]
-                A = self.fold3d(A_mat, k)
+                A_mat = np.linalg.lstsq(Q_mat, T_mat, rcond=None)[0]    #R2R1 x d1
+                shape = self.cores[k].shape
+                A = np.reshape(A_mat, (shape[2], shape[0], shape[1]))
+                A = np.moveaxis(A, 1, -1)
                 self.cores[k] = A
+                #A = np.transpose(A,[0,2,1])
+                # Calculate relative error
+                R = self.recover()
+                error = np.linalg.norm(self.T - R)
+                self.errors.append(error)
 
                 # Calculate least squares errors
                 lstsq_error = np.linalg.norm(T_mat - Q_mat.dot(A_mat))
@@ -43,15 +46,21 @@ class ALS:
                     print(f'epoch={epoch}')
                     print(f'k={k}')
                     print(f'subchain dims: {Q.shape}')
+                    print(f'A dims: {A.shape}')
+                    print(f'A_mat dims: {A_mat.shape}')
                     print(f'Q dims: {Q_mat.shape}')
                     print(f'T dims: {T_mat.shape}')
                     print(f'error: {error}')
                     print(f'least squares error: {lstsq_error}')
+                    print("mat diff norm",np.linalg.norm(T_mat - Q_mat.dot(A_mat) - self.unfold(self.T-R,k).T))
+                    print("T", np.linalg.norm(self.T))
+                    print("R", np.linalg.norm(R))
+                    print("\n")
 
     def init_cores(self):
         if not self.cores:
             for k, d in enumerate(self.T.shape):
-                self.cores.append(np.random.normal(0, 1, size=(self.ranks[k], d, self.ranks[(k+1)%len(self.ranks)])))
+                self.cores.append(np.random.normal(0, 0.1, size=(self.ranks[k], d, self.ranks[(k+1)%len(self.ranks)])))
 
     def compute_subchain(self, k):
         Q = self.cores[(k+1)%len(self.ranks)]
