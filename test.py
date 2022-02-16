@@ -19,6 +19,12 @@ print(np.linalg.norm(R))
 print(als.unfold(T, 0).shape)
 print(np.reshape(als.T, [als.T.shape[0], -1]).shape)
 
+als.solve(verbose=True, penalty= 'proximal', lamb=0.001)
+als.plot_losses()
+
+als.solve(verbose=True, penalty= 'l2_normal', lamb=0.001)
+als.plot_losses()
+
 als.solve(verbose=True, penalty= 'l2', lamb=0.001)
 als.plot_losses()
 

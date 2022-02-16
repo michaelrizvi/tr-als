@@ -44,17 +44,17 @@ class ALS:
            Nothing is returned, the decomposition of the target tensor T is stored in the cores attribute.
 
         """
+        self.penalty = penalty
         self.init_cores()
         self.errors = []
-
+        cores_prev = self.cores
         for epoch in range(1, self.n_epochs):
 
             for k, d in enumerate(self.T.shape):
                 # Compute the subchain and reshape de subchain
                 Q = self.compute_subchain(k)    # R2 x d3 x d4 x d1 x R1
                 Q = np.moveaxis(Q, 0, -1)  # d3 x d4 x d1 x R1 x R2
-                Q_mat = np.reshape(Q, (np.prod(Q.shape[:-2]), Q.shape[-2]*Q.shape[-1]))
-                # d3d4d1 x R1R2
+                Q_mat = np.reshape(Q, (np.prod(Q.shape[:-2]), Q.shape[-2]*Q.shape[-1])) # d3d4d1 x R1R2
 
                 # Matricization of target tensor
                 T_perm = self.T
@@ -62,6 +62,7 @@ class ALS:
                    T_perm = np.moveaxis(T_perm,0,-1)  # d2 x d3 x d4 x d1
                 T_mat = self.unfold(T_perm, 0).T  #  d3d4d1 x d2
 
+                # Solve least squares problem depending on chosen regularization
                 if penalty == 'l2':
                     A_mat = np.linalg.lstsq(np.vstack((Q_mat, lamb*np.eye(Q_mat.shape[1]))),
                                             np.vstack((T_mat, np.zeros((Q_mat.shape[1], T_mat.shape[1])))), rcond=None)[0]
@@ -70,15 +71,17 @@ class ALS:
                     A_mat = np.linalg.lstsq(Q_mat.T.dot(Q_mat) + lamb*np.identity(Q_mat.shape[1]), Q_mat.T.dot(T_mat), rcond=None)[0]
 
                 elif penalty == 'proximal':
-                    pass
-                    # do something
-                # Solve with least squares solver
+                    A_hat = self.unfold(cores_prev[k], 1).T
+                    A_mat = np.linalg.lstsq(np.vstack((Q_mat, lamb*np.eye(Q_mat.shape[1]))),
+                                            np.vstack((T_mat, lamb*A_hat)), rcond=None)[0]
                 else:
                     A_mat = np.linalg.lstsq(Q_mat, T_mat, rcond=None)[0]    #R1R2 x d2
 
-                shape = self.cores[k].shape
-                A = np.reshape(A_mat, (shape[0], shape[2], shape[1]))  # R1 x R2 x d2
-                A = np.moveaxis(A, 1, -1)  # R1 x d2 x R2
+                # Update cores_prev for proximal regularization
+                cores_prev = self.cores
+
+                # Fold the resulting matrix into 3D tensor and update cores
+                A = self.fold3d(A_mat, k)
                 self.cores[k] = A
 
                 # Calculate relative error
@@ -167,7 +170,7 @@ class ALS:
         T = T.reshape(shape[mode],-1)
         return T
 
-    def fold3d(self, A, mode):
+    def fold3d(self, A, k):
         """Helper function to fold a matrix into a 3D tensor along a given mode.
 
         Parameters
@@ -183,9 +186,9 @@ class ALS:
             The folded tensor.
 
         """
-        shape = self.cores[mode].shape
-        A = np.reshape(A, (shape[0], shape[2], shape[1]))
-        A = np.transpose(A,[0,2,1])
+        shape = self.cores[k].shape
+        A = np.reshape(A, (shape[0], shape[2], shape[1]))  # R1 x R2 x d2
+        A = np.moveaxis(A, 1, -1)  # R1 x d2 x R2
         return A
 
     def plot_losses(self):
@@ -201,5 +204,6 @@ class ALS:
         plt.yscale('log')
         plt.ylabel('Loss')
         plt.xlabel('Epoch')
-        plt.title('Log loss of training')
+        plt.title(f'Log loss of training with {self.penalty} regularization')
+        plt.savefig(f'losses_{self.penalty}.png')
         plt.show()
