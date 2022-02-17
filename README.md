@@ -4,7 +4,7 @@
 
 ## Description
 
-This solver was written in the context of the honours project (IFT3150) at University of Montréal. The goal of the project is to analyze and compare the performance of the ALS algorithm to the greedy algorithm proposed by M. Hashemizadeh et al. in their paper [Adaptive Learning of Tensor Network Structures](https://arxiv.org/abs/2008.05437) for the specific task of tensor ring decomposition.
+This solver was written in the context of the honours project (IFT3150) at University of Montréal. The goal of the project is to analyze and compare the performance of the ALS algorithm to the greedy algorithm  for the specific task of tensor ring decomposition [(Hashemizadeh et al., 2018)](https://arxiv.org/abs/2008.05437).
 
 ### Dependencies
 
