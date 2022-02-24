@@ -31,6 +31,25 @@ class ALS:
         self.cores = []
 
     def solve(self, verbose=True, penalty=None, lamb=0.001):
+        """Main method. Solves the TR decomposition using alternating least squares
+
+        Parameters
+        ----------
+        verbose : boolean
+            Toggle the priting of information to the console.
+        penalty : string
+            The type of regularization to be used by the solver.
+            Allowed values are 'l2' for l2 regularization and 'proximal' for proximal regularization.
+        lamb : type
+            Description of parameter `lamb`.
+
+        Returns
+        -------
+        type
+            Description of returned object.
+
+        """
+        # TODO: RETURN THE LOSSES
         """Short summary.
 
         Parameters
@@ -49,7 +68,6 @@ class ALS:
         self.errors = []
         cores_prev = self.cores
         for epoch in range(1, self.n_epochs):
-
             for k, d in enumerate(self.T.shape):
                 # Compute the subchain and reshape de subchain
                 Q = self.compute_subchain(k)    # R2 x d3 x d4 x d1 x R1
@@ -67,14 +85,11 @@ class ALS:
                     A_mat = np.linalg.lstsq(np.vstack((Q_mat, lamb*np.eye(Q_mat.shape[1]))),
                                             np.vstack((T_mat, np.zeros((Q_mat.shape[1], T_mat.shape[1])))), rcond=None)[0]
 
-                if penalty == 'l2_normal':
-                    A_mat = np.linalg.lstsq(Q_mat.T.dot(Q_mat) + lamb*np.identity(Q_mat.shape[1]), Q_mat.T.dot(T_mat), rcond=None)[0]
-
                 elif penalty == 'proximal':
                     A_hat = self.unfold(cores_prev[k], 1).T
                     A_mat = np.linalg.lstsq(np.vstack((Q_mat, lamb*np.eye(Q_mat.shape[1]))),
                                             np.vstack((T_mat, lamb*A_hat)), rcond=None)[0]
-                else:
+                elif penalty == None:
                     A_mat = np.linalg.lstsq(Q_mat, T_mat, rcond=None)[0]    #R1R2 x d2
 
                 # Update cores_prev for proximal regularization
@@ -205,5 +220,5 @@ class ALS:
         plt.ylabel('Loss')
         plt.xlabel('Epoch')
         plt.title(f'Log loss of training with {self.penalty} regularization')
-        plt.savefig(f'losses_{self.penalty}.png')
+        #plt.savefig(f'losses_{self.penalty}.png')
         plt.show()
