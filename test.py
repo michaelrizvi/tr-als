@@ -33,6 +33,7 @@ lambdas = [0,0.001,0.01,0.1,1]
 penalties = ['proximal', 'l2', None]
 dims = [4,5,6,4]
 ranks_list = [[2,2,2,2], [4,4,4,4], [8,8,8,8], [11,11,11,11]]
+# TODO: Generate tensor using recover on a tensor ring!
 T = np.random.randn(*dims)
 
 for r in ranks_list:
