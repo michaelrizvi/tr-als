@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import wandb
 
 class ALS:
-    def __init__(self, T, ranks, eps=1e-6, n_epochs=50, early_stopping=True):
+    def __init__(self, T, ranks, eps=1e-6, n_epochs=50, early_stopping=True, use_wandb=False):
         """Short summary.
 
         Parameters
@@ -29,6 +30,7 @@ class ALS:
         self.n_epochs = n_epochs
         self.early_stopping = early_stopping
         self.cores = []
+        self.use_wandb = use_wandb
 
     def solve(self, verbose=True, penalty=None, lamb=0.001):
         """Main method. Solves the TR decomposition using alternating least squares
@@ -103,6 +105,9 @@ class ALS:
                 R = self.recover()
                 error = np.linalg.norm(self.T - R)
                 self.errors.append(error)
+                
+                if self.use_wandb:
+                    wandb.log({"loss":error})
 
                 # Calculate least squares errors
                 lstsq_error = np.linalg.norm(T_mat - Q_mat.dot(A_mat))
