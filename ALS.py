@@ -32,7 +32,7 @@ class ALS:
         self.cores = []
         self.use_wandb = use_wandb
 
-    def solve(self, verbose=True, penalty=None, lamb=0.001):
+    def solve(self, verbose=True, penalty=None, lamb=0.001, cvg_threshold =1e-5):
         """Main method. Solves the TR decomposition using alternating least squares
 
         Parameters
@@ -69,6 +69,7 @@ class ALS:
         self.init_cores()
         self.errors = []
         cores_prev = self.cores
+        prev_loss = np.inf
         for epoch in range(1, self.n_epochs):
             for k, d in enumerate(self.T.shape):
                 # Compute the subchain and reshape de subchain
@@ -109,10 +110,9 @@ class ALS:
                 if self.use_wandb:
                     wandb.log({"loss":error})
 
-                # Calculate least squares errors
-                lstsq_error = np.linalg.norm(T_mat - Q_mat.dot(A_mat))
 
                 if verbose:
+                    lstsq_error = np.linalg.norm(T_mat - Q_mat.dot(A_mat))
                     print(f'epoch={epoch}')
                     print(f'k={k}')
                     print(f'subchain dims: {Q.shape}')
@@ -122,7 +122,13 @@ class ALS:
                     print(f'T dims: {T_mat.shape}')
                     print(f'error: {error}')
                     print(f'least squares error: {lstsq_error}')
-                    print("\n")
+                    print(f'diff: {np.abs(prev_loss - error)}')
+                    #   print("\n")
+
+            if np.abs(prev_loss - error) < cvg_threshold:
+                return
+
+            prev_loss = error
 
     def init_cores(self):
         """Initializes the core tensors based on the given rank values.
