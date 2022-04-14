@@ -106,7 +106,7 @@ class ALS:
                 R = self.recover()
                 error = np.linalg.norm(self.T - R)
                 self.errors.append(error)
-                
+
                 if self.use_wandb:
                     wandb.log({"loss":error})
 
@@ -233,3 +233,9 @@ class ALS:
         plt.title(f'Log loss of training with {self.penalty} regularization')
         #plt.savefig(f'losses_{self.penalty}.png')
         plt.show()
+
+if __name__ == '__main__':
+    target = np.random.randn(3,4,5,6)
+    ranks = [3,3,3,3]
+    als = ALS(target, ranks, n_epochs=100)
+    als.solve(verbose=True, penalty='proximal', lamb=0.001)
